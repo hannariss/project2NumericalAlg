@@ -1,5 +1,4 @@
 class OptimizationProblem:
-
     def __init__(self, objective_func, gradient=None):
         self.objective_func = objective_func
         self.gradient = gradient
@@ -36,4 +35,13 @@ class GeneralOptimizationMethod:
     
     # Third step of Quasi-Newton Methods
     def update_hess(self):
-        return None 
+        return None
+    
+
+class ClassicalNewtonMethod(GeneralOptimizationMethod):
+    def compute_direction(self, hess):
+        return (-1/hess)*self.grad  # s^(k) := - G^(x^(k))^-1 * g^(x^(k))
+    
+    def newton_step(self, x, s):
+        return x + s
+    
