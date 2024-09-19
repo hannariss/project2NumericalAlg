@@ -5,7 +5,7 @@ class OptimizationProblem:
         self.gradient = gradient
 
 class GeneralOptimizationMethod:
-    def __init__(self, func, grad, x0, tol=1e-5, max_iter=1000):
+    def __init__(self, func, grad, x0, tol=1e-5, k=1000):
         """
         Initialize the optimization method.
 
@@ -14,10 +14,26 @@ class GeneralOptimizationMethod:
         - grad: The gradient of the objective function.
         - x0: Initial guess for the minimum.
         - tol: Tolerance for the stopping criterion.
-        - max_iter: Maximum number of iterations.
+        - k: Maximum number of iterations.
         """
         self.func = func
         self.grad = grad
         self.x0 = x0
         self.tol = tol
-        self.max_iter = max_iter
+        self.k = k
+
+    # First step of Quasi-Newton Methods
+    def compute_direction(self, hess_approx):
+        return -hess_approx * self.grad  # s^(k) := - H^(k) * g^(k)
+    
+    # Second step of Quasi-Newton Methods
+    def line_search(self):
+        return None # Note: Check that alpha exists?
+    
+    # Third step of Quasi-Newton Methods
+    def newton_step(self, x, alpha, s):
+        return x + alpha * s  # x^(k+1) = x^(k) + alpha^(k) * s^(k)
+    
+    # Third step of Quasi-Newton Methods
+    def update_hess(self):
+        return None 
