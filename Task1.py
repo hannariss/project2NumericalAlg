@@ -54,8 +54,8 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         n = len(x) # Dimension of x
         hess = np.zeros((n, n)) # Creates n x n Matrix with zeros
 
-        for i in range(n-1): # Range is 0 - n-1 because normally we would start at ix 1
-            for j in range(n-1):
+        for i in range(n): 
+            for j in range(n):
                 # Create Unit vector in i-th and j-th direction
                 u_i = np.zeros(n) 
                 u_j = np.zeros(n)
@@ -97,12 +97,21 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
 
         if self.steep: #by default function is defined as steep
             while not self.residual_crit(x):
-                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                hess = self.approx_hess(x)
+                # if np.det(hess) != 0.0:
+                s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                # else:
+                #     s = -hess * self.grad(x)
                 x_new = x + s
                 x = x_new
+                print(x)
         else:  
             while True:
-                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                hess = self.approx_hess(x)
+                # if np.det(hess) != 0.0:
+                s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                # else:
+                #     s = -hess * self.grad(x)
                 x_new = x + s
                 if self.cauchy_crit(x, x_new):
                     break
@@ -121,13 +130,21 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
 
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
-                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                hess = self.approx_hess(x)
+                # if np.det(hess) != 0.0:
+                s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                # else:
+                #     s = -hess * self.grad(x)
                 alpha = self.exact_line_search(x, s)  # calculate alpha
                 x_new = x + alpha * s
                 x = x_new
         else:  
             while True:
-                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                hess = self.approx_hess(x)
+                # if np.det(hess) != 0.0:
+                s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                # else:
+                #     s = -hess * self.grad(x)
                 alpha = self.exact_line_search(x, s)  # calculate alpha
                 x_new = x + alpha * s
                 if self.cauchy_crit(x, x_new):
