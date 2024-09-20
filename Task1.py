@@ -109,11 +109,31 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 x = x_new
         return x_new
 
-    def line_search(self, x, s_k):
+    def exact_line_search(self, x, s_k):
         def phi(alpha):
             return self.func(x + alpha * s_k)
         alpha_opt = minimize_scalar(phi)
         return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
+    
+    def optimization_exact_ls(self, x0=None):
+        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
+        x = self.x0
+
+        if self.steep: # by default function is defined as steep
+            while not self.residual_crit(x):
+                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                alpha = self.exact_line_search(x, s)  # calculate alpha
+                x_new = x + alpha * s
+                x = x_new
+        else:  
+            while True:
+                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                alpha = self.exact_line_search(x, s)  # calculate alpha
+                x_new = x + alpha * s
+                if self.cauchy_crit(x, x_new):
+                    break
+                x = x_new
+        return x_new
 
 
 
