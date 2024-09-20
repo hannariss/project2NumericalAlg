@@ -75,4 +75,18 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
 
         return hess_sym
     
+    def residual_crit(self, x):
+        criterion = False
+        residual = np.linalg.norm(self.grad(x))
+        if residual < self.tol:
+            criterion = True
+        return criterion
     
+    def cauchy_crit(self, x1, x2):
+        criterion = False
+        cauchy = np.linalg.norm((x2-x1))
+        if cauchy < self.tol:
+            criterion = True
+        return criterion
+    
+
