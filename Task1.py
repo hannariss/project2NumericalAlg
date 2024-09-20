@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import minimize_scalar
 
 class OptimizationProblem:
     def __init__(self, objective_func, gradient=None):
@@ -108,7 +109,11 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 x = x_new
         return x_new
 
-
+    def line_search(self, x, s_k):
+        def phi(alpha):
+            return self.func(x + alpha * s_k)
+        alpha_opt = minimize_scalar(phi)
+        return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
 
 
 
