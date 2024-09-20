@@ -6,7 +6,7 @@ class OptimizationProblem:
         self.gradient = gradient
 
 class GeneralOptimizationMethod:
-    def __init__(self, func, grad, x0, tol=1e-5, k=1000):
+    def __init__(self, func, grad, x0, tol=1e-5, k=1000, steep=True):
         """
         Initialize the optimization method.
 
@@ -22,6 +22,7 @@ class GeneralOptimizationMethod:
         self.x0 = x0
         self.tol = tol
         self.k = k
+        self.steep = steep
 
     # First step of Quasi-Newton Methods
     def compute_direction(self, hess_approx):
@@ -73,4 +74,5 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         hess_sym = 1/2 * (hess + hess.T)  
 
         return hess_sym
+    
     
