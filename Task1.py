@@ -6,7 +6,7 @@ class OptimizationProblem:
         self.gradient = gradient
 
 class GeneralOptimizationMethod:
-    def __init__(self, func, grad, x0, tol=1e-5, k=1000, steep=True):
+    def __init__(self, func, grad, x0, tol=1e-5, k=1000, steep=True): #constructor
         """
         Initialize the optimization method.
 
@@ -16,6 +16,7 @@ class GeneralOptimizationMethod:
         - x0: Initial guess for the minimum.
         - tol: Tolerance for the stopping criterion.
         - k: Maximum number of iterations.
+        - steep: refers to steepness of function, defines which stopping criteria will be used (steep -> residual, not steep -> cauchy)
         """
         self.func = func
         self.grad = grad
@@ -82,11 +83,32 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
             criterion = True
         return criterion
     
-    def cauchy_crit(self, x1, x2):
+    def cauchy_crit(self, x, x_new):
         criterion = False
-        cauchy = np.linalg.norm((x2-x1))
+        cauchy = np.linalg.norm((x_new-x))
         if cauchy < self.tol:
             criterion = True
         return criterion
     
+    def optimization(self, x0=None):
+        self.x0 = x0 if x0 is not None else self.x0  #by default x0 is defined in constructor, can be redefined in this function optionally
+        x = self.x0
+
+        if self.steep: #by default function is defined as steep
+            while not self.residual_crit(x):
+                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                x_new = x + s
+                x = x_new
+        else:  
+            while True:
+                s = -np.linalg.inv(self.approx_hess(x)) * self.grad(x)
+                x_new = x + s
+                if self.cauchy_crit(x, x_new):
+                    break
+                x = x_new
+        return x_new
+
+
+
+
 
