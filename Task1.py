@@ -7,6 +7,7 @@ class OptimizationProblem:
         self.gradient = gradient
 
 class GeneralOptimizationMethod:
+    counter = 1
     def __init__(self, func, grad, x0, tol=1e-5, k=1000, steep=True): #constructor
         """
         Initialize the optimization method.
@@ -64,13 +65,15 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 
                 ## Compute hessian approximation
                 # Compute single components of formula
+        
                 f_ij = self.func(x + h * u_i + h * u_j)
                 f_i = self.func(x + h * u_i)
                 f_j = self.func(x + h * u_j)
                 f_x = self.func(x)
 
                 # Compute ij entry in hessian approx matrix by combining the predefined functions
-                hess[i, j] = (f_ij - f_i - f_j + f_x) / (h ** 2)
+                entry = (f_ij - f_i - f_j + f_x) / (h ** 2)
+                hess[i, j] = entry
 
         # Symmetrize the Hessian approximation matrix
         hess_sym = 1/2 * (hess + hess.T)  
@@ -78,9 +81,13 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         return hess_sym
     
     def residual_crit(self, x):
+        self.counter += 1
         criterion = False
         residual = np.linalg.norm(self.grad(x))
         if residual < self.tol:
+            criterion = True
+        if self.counter > self.k:
+            print("hello")
             criterion = True
         return criterion
     
@@ -98,20 +105,19 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         if self.steep: #by default function is defined as steep
             while not self.residual_crit(x):
                 hess = self.approx_hess(x)
-                # if np.det(hess) != 0.0:
-                s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                # else:
-                #     s = -hess * self.grad(x)
+                if np.linalg.det(hess) != 0.0:
+                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                else:
+                    s = -hess.dot(self.grad(x))
                 x_new = x + s
                 x = x_new
-                print(x)
         else:  
             while True:
                 hess = self.approx_hess(x)
-                # if np.det(hess) != 0.0:
-                s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                # else:
-                #     s = -hess * self.grad(x)
+                if np.linalg.det(hess) != 0.0:
+                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                else:
+                    s = -hess.dot(self.grad(x))
                 x_new = x + s
                 if self.cauchy_crit(x, x_new):
                     break
@@ -131,20 +137,20 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
                 hess = self.approx_hess(x)
-                # if np.det(hess) != 0.0:
-                s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                # else:
-                #     s = -hess * self.grad(x)
+                if np.linalg.det(hess) != 0.0:
+                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                else:
+                    s = -hess.dot(self.grad(x))
                 alpha = self.exact_line_search(x, s)  # calculate alpha
                 x_new = x + alpha * s
                 x = x_new
         else:  
             while True:
                 hess = self.approx_hess(x)
-                # if np.det(hess) != 0.0:
-                s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                # else:
-                #     s = -hess * self.grad(x)
+                if np.linalg.det(hess) != 0.0:
+                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
+                else:
+                    s = -hess.dot(self.grad(x))
                 alpha = self.exact_line_search(x, s)  # calculate alpha
                 x_new = x + alpha * s
                 if self.cauchy_crit(x, x_new):
