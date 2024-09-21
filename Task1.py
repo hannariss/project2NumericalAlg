@@ -134,6 +134,7 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
         x = self.x0
 
+        steps = []
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
                 hess = self.approx_hess(x)
@@ -144,6 +145,7 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 alpha = self.exact_line_search(x, s)  # calculate alpha
                 x_new = x + alpha * s
                 x = x_new
+                steps.append(x)
         else:  
             while True:
                 hess = self.approx_hess(x)
@@ -156,7 +158,8 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 if self.cauchy_crit(x, x_new):
                     break
                 x = x_new
-        return x_new
+                steps.append(x)
+        return x_new, steps
 
 
 
