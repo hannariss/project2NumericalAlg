@@ -1,6 +1,7 @@
 from Task1 import ClassicalNewtonMethod
 import numpy as np
 import sympy as sp
+import matplotlib.pyplot as plt
 
 def func(x):
     x_1 = x[0]
@@ -31,10 +32,40 @@ def grad(x):
 x0 = np.array([0, -0.5])
 
 test_run = ClassicalNewtonMethod(func, grad, x0, tol=1e-1, k=20000)
-minimizer = test_run.optimization()
+minimizer, steps = test_run.optimization_exact_ls()
 
-test_run = ClassicalNewtonMethod(func, grad, x0, k=200000)
-minimizer_with_ls = test_run.optimization_exact_ls()
+print(f'minimizer:{minimizer}')
+print(steps)
 
-print(minimizer, grad(minimizer))
-print(minimizer_with_ls, grad(minimizer_with_ls))
+
+
+#plot function
+x_1 = np.linspace(-0.5, 2, 1000)
+x_2 = np.linspace(-1.5, 4, 1000)
+x_1, x_2 = np.meshgrid(x_1, x_2) #return a tuple of coordinate matrices
+
+#customize shown contours
+low_levels = np.linspace(0, 10, 10)
+higher_levels = np.linspace(10, 800, 8)
+custom_levels = np.unique(np.concatenate([low_levels, higher_levels]))
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+ax.contour(x_1, x_2, func([x_1, x_2]), levels=custom_levels, colors='black', linewidths=0.5)
+for points in steps:
+    ax.scatter(points[0], points[1], c='orange')
+ax.scatter(x0[0], x0[1], c='orange')
+ax.set_xlabel('x_1')
+ax.set_ylabel('x_2')
+ax.set_title('Rosenbrock Function: $f(x_1, x_2) = 100 * (x_2 - x_1^2)^2 + (1 - x_1)^2$')
+
+plt.show()
+
+
+
+
+
+
+
+
