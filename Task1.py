@@ -86,9 +86,9 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         residual = np.linalg.norm(self.grad(x))
         if residual < self.tol:
             criterion = True
-        if self.counter > self.k:
-            print("hello")
-            criterion = True
+        # if self.counter > self.k:
+        #     print("hello")
+        #     criterion = True
         return criterion
     
     def cauchy_crit(self, x, x_new):
