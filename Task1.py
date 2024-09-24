@@ -131,13 +131,13 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
     
     def armijo(self, x, s_k, alpha, sigma):
-        if self.func(x + alpha * s_k) <= self.func(x) + sigma * alpha * (s_k * self.grad(x)):
+        if np.linalg.norm(self.func(x + alpha * s_k)) <= np.linalg.norm(self.func(x) + sigma * alpha * (s_k * self.grad(x))):
             return True
         else:
             return False
         
     def wolfe(self, x, s_k, alpha, rho):
-        if (s_k * self.grad(x + alpha * s_k)) >= rho * (s_k * self.grad(x)):
+        if np.linalg.norm((s_k * self.grad(x + alpha * s_k))) >= np.linalg.norm(rho * (s_k * self.grad(x))):
             return True
         else:
             return False
