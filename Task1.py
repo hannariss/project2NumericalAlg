@@ -130,6 +130,33 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         alpha_opt = minimize_scalar(phi)
         return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
     
+    def armijo(self, x, s_k, alpha, sigma):
+        if self.func(x + alpha * s_k) <= self.func(x) + sigma * alpha * (s_k * self.grad(x)):
+            return True
+        else:
+            return False
+        
+    def wolfe(self, x, s_k, alpha, rho):
+        if (s_k * self.grad(x + alpha * s_k)) >= rho * (s_k * self.grad(x)):
+            return True
+        else:
+            return False
+    
+    def inexact_line_search(self, x, s_k, sigma, rho, alpha_min):
+        while not self.armijo(x, s_k, alpha_min, sigma):
+            alpha_min = alpha_min/2
+        alpha_max = alpha_min
+        while self.armijo(x, s_k, alpha_max, sigma):
+            alpha_max = 2*alpha_max
+        while not self.wolfe(x, s_k, alpha_min, rho):
+            alpha_0 = (alpha_min + alpha_max)/2
+            if self.armijo(x, s_k, alpha_0, sigma):
+                alpha_min = alpha_0
+            else:
+                alpha_max = alpha_0
+
+        return alpha_min
+ 
     def optimization_exact_ls(self, x0=None):
         self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
         x = self.x0
