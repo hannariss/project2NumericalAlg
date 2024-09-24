@@ -29,38 +29,38 @@ def grad(x):
         return np.array([df_dx1, df_dx2])
     return calc_value(x, df_dx1, df_dx2)
 
-x0 = np.array([0, -0.5])
+x0 = np.array([0.5, 1])
 
-test_run = ClassicalNewtonMethod(func, grad, x0, tol=1e-1, k=20000)
+test_run = ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500)
 minimizer, steps = test_run.optimization_inexact_ls(sigma=10**(-2), rho=0.9, alpha_min=5)
 
-print(f'minimizer:{minimizer}')
-# print(steps)
+#print(f'minimizer:{minimizer}')
+print(steps)
 
 
 
-# #plot function
-# x_1 = np.linspace(-0.5, 2, 1000)
-# x_2 = np.linspace(-1.5, 4, 1000)
-# x_1, x_2 = np.meshgrid(x_1, x_2) #return a tuple of coordinate matrices
+#plot function
+x_1 = np.linspace(-0.5, 2, 1000)
+x_2 = np.linspace(-1.5, 4, 1000)
+x_1, x_2 = np.meshgrid(x_1, x_2) #return a tuple of coordinate matrices
 
-# #customize shown contours
-# low_levels = np.linspace(0, 10, 10)
-# higher_levels = np.linspace(10, 800, 8)
-# custom_levels = np.unique(np.concatenate([low_levels, higher_levels]))
+#customize shown contours
+low_levels = np.linspace(0, 10, 10)
+higher_levels = np.linspace(10, 800, 8)
+custom_levels = np.unique(np.concatenate([low_levels, higher_levels]))
 
-# fig = plt.figure()
-# ax = fig.add_subplot(111)
+fig = plt.figure()
+ax = fig.add_subplot(111)
 
-# ax.contour(x_1, x_2, func([x_1, x_2]), levels=custom_levels, colors='black', linewidths=0.5)
-# for points in steps:
-#     ax.scatter(points[0], points[1], c='orange')
-# ax.scatter(x0[0], x0[1], c='orange')
-# ax.set_xlabel('x_1')
-# ax.set_ylabel('x_2')
-# ax.set_title('Rosenbrock Function: $f(x_1, x_2) = 100 * (x_2 - x_1^2)^2 + (1 - x_1)^2$')
+ax.contour(x_1, x_2, func([x_1, x_2]), levels=custom_levels, colors='black', linewidths=0.5)
+for points in steps:
+    ax.scatter(points[0], points[1], c='orange')
+ax.scatter(x0[0], x0[1], c='orange')
+ax.set_xlabel('x_1')
+ax.set_ylabel('x_2')
+ax.set_title('Rosenbrock Function: $f(x_1, x_2) = 100 * (x_2 - x_1^2)^2 + (1 - x_1)^2$')
 
-# plt.show()
+plt.show()
 
 
 
