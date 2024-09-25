@@ -338,7 +338,7 @@ class DFP(ClassicalNewtonMethod):
         gamma = self.grad(x_new) - self.grad(x) # result: vector
 
         #update hess
-        hess_new = hess + ((np.dot(delta, delta.T))/(np.dot(delta.T, gamma))) - (np.linalg.multi_dot(hess, gamma, gamma.T, hess))/((np.linalg.multi_dot(gamma.T, hess, gamma)))
+        hess_new = hess + ((np.dot(delta, delta.T))/(np.dot(delta.T, gamma))) - np.dot(np.dot(hess, gamma), np.dot(gamma.T, hess)) /((np.linalg.multi_dot([gamma.T, hess, gamma])))
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
@@ -375,7 +375,7 @@ class BFGS(ClassicalNewtonMethod):
         gamma = self.grad(x_new) - self.grad(x) # result: vector
     
         # update hess
-        hess_new = hess + (1 + (np.linalg.multi_dot(gamma.T, hess, gamma)) / (np.dot(delta.T, gamma))) * (np.dot(delta, delta.T)) / (np.dot(delta.T, gamma)) - (np.linalg.multi_dot(delta, gamma.T, hess) + np.linalg.multi_dot(hess, gamma, delta.T)) / np.dot(delta.T, gamma)
+        hess_new = hess + (1 + (np.linalg.multi_dot([gamma.T, hess, gamma])) / (np.dot(delta.T, gamma))) * (np.dot(delta, delta.T)) / (np.dot(delta.T, gamma)) - ((np.dot(delta, gamma.T) * hess) + np.dot(np.dot(hess, gamma), delta.T)) / np.dot(delta.T, gamma)
         return hess_new
 
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
