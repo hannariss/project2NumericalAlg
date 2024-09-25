@@ -1,4 +1,4 @@
-from Task1 import ClassicalNewtonMethod
+from Task1 import ClassicalNewtonMethod, GoodBroyden
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
@@ -31,10 +31,23 @@ def grad(x):
 
 x0 = np.array([0.5, 1])
 
+# testing Newton Method
 test_run = ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500)
 minimizer, steps = test_run.optimization_inexact_ls(sigma=10**(-2), rho=0.9, alpha_min=5)
 
-#print(f'minimizer:{minimizer}')
+
+## testing Quasi Newton Methods
+
+# testing Good Broyden
+hess = np.array([[1, 0], [0, 1]]) # test with unit matrix 
+
+test_run_0 = ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500) # test with hess approx
+hess_test = np.linalg.inv(test_run_0.approx_hess(x0))
+
+test_run = GoodBroyden(func, grad, x0, tol=1e-5, k=1000)
+minimizer, steps = test_run.optimization_inexact_ls(sigma=10**(-2), rho=0.9, alpha_min=5, hess=hess_test)
+
+print(f'minimizer:{minimizer}')
 print(steps)
 
 
