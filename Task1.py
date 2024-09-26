@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize_scalar
 
-class OptimizationProblem:
+class OptimizationProblem: # asked Task1 --not really used
     def __init__(self, objective_func, gradient=None):
         self.objective_func = objective_func
         self.gradient = gradient
@@ -27,30 +27,78 @@ class GeneralOptimizationMethod:
         self.k = k
         self.steep = steep
 
-    # First step of Quasi-Newton Methods
-    def compute_direction(self, hess_approx):
-        return -hess_approx * self.grad  # s^(k) := - H^(k) * g^(k)
+    ## First step of Quasi-Newton Methods
+    def s_k(self, x, hess):
+        return -(np.dot(np.linalg.inv(hess), self.grad(x)))  # s^(k) := - G^(x^(k))^-1 * g^(x^(k))
     
-    # Second step of Quasi-Newton Methods
-    def line_search(self):
-        return None # Note: Check that alpha exists?
+
+    ## Second step of Quasi-Newton Methods
+    def exact_line_search(self, x, s_k):
+        def phi(alpha):
+            return self.func(x + alpha * s_k)
+        alpha_opt = minimize_scalar(phi)
+        return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
     
+    def inexact_line_search(self, x, s_k, sigma, rho, alpha_min):
+        # define armijo condition
+        def armijo(self, x, s_k, alpha, sigma):
+            if self.func(x + alpha * s_k) <= self.func(x) + sigma * alpha * np.dot(s_k, self.grad(x)):
+                return True
+            else:
+                return False
+        
+        # define Powell-Wolfe condition
+        def wolfe(self, x, s_k, alpha, rho):
+            if np.dot(s_k, self.grad(x + alpha * s_k)) >= rho * np.dot(s_k, self.grad(x)):
+                return True
+            else:
+                return False
+            
+        while not self.armijo(x, s_k, alpha_min, sigma):
+            alpha_min = alpha_min/2
+        alpha_max = alpha_min
+        while self.armijo(x, s_k, alpha_max, sigma):
+            alpha_max = 2*alpha_max
+        while not self.wolfe(x, s_k, alpha_min, rho):
+            alpha_0 = (alpha_min + alpha_max)/2
+            if self.armijo(x, s_k, alpha_0, sigma):
+                alpha_min = alpha_0
+            else:
+                alpha_max = alpha_0
+        return alpha_min
+    
+
     # Third step of Quasi-Newton Methods
-    def newton_step(self, x, alpha, s):
-        return x + alpha * s  # x^(k+1) = x^(k) + alpha^(k) * s^(k)
+    def x_new(self, x, s, alpha):
+        return x + alpha * s
     
-    # Third step of Quasi-Newton Methods
+    # Fourth step of Quasi-Newton Methods
     def update_hess(self):
         return None
     
+    ## Stopping criteria for optimization
+    def residual_crit(self, x):
+        self.counter += 1
+        criterion = False
+        residual = np.linalg.norm(self.grad(x))
+        if residual < self.tol:
+            criterion = True
+        if self.counter > self.k:
+            print("hello")
+            criterion = True
+        return criterion
+    
+    def cauchy_crit(self, x, x_new):
+        criterion = False
+        cauchy = np.linalg.norm((x_new-x))
+        if cauchy < self.tol:
+            criterion = True
+        return criterion
+
+
+    
 
 class ClassicalNewtonMethod(GeneralOptimizationMethod):
-    def compute_direction(self, hess):
-        return (-1/hess)*self.grad  # s^(k) := - G^(x^(k))^-1 * g^(x^(k))
-    
-    def newton_step(self, x, s):
-        return x + s
-
     def approx_hess(self, x, h=1e-5):
         n = len(x) # Dimension of x
         hess = np.zeros((n, n)) # Creates n x n Matrix with zeros
@@ -79,84 +127,8 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         hess_sym = 1/2 * (hess + hess.T)  
 
         return hess_sym
-    
-    def residual_crit(self, x):
-        self.counter += 1
-        criterion = False
-        residual = np.linalg.norm(self.grad(x))
-        if residual < self.tol:
-            criterion = True
-        if self.counter > self.k:
-            print("hello")
-            criterion = True
-        return criterion
-    
-    def cauchy_crit(self, x, x_new):
-        criterion = False
-        cauchy = np.linalg.norm((x_new-x))
-        if cauchy < self.tol:
-            criterion = True
-        return criterion
-    
-    def optimization(self, x0=None):
-        self.x0 = x0 if x0 is not None else self.x0  #by default x0 is defined in constructor, can be redefined in this function optionally
-        x = self.x0
 
-        if self.steep: #by default function is defined as steep
-            while not self.residual_crit(x):
-                hess = self.approx_hess(x)
-                if np.linalg.det(hess) != 0.0:
-                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                else:
-                    s = -hess.dot(self.grad(x))
-                x_new = x + s
-                x = x_new
-        else:  
-            while True:
-                hess = self.approx_hess(x)
-                if np.linalg.det(hess) != 0.0:
-                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                else:
-                    s = -hess.dot(self.grad(x))
-                x_new = x + s
-                if self.cauchy_crit(x, x_new):
-                    break
-                x = x_new
-        return x_new
 
-    def exact_line_search(self, x, s_k):
-        def phi(alpha):
-            return self.func(x + alpha * s_k)
-        alpha_opt = minimize_scalar(phi)
-        return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
-    
-    def armijo(self, x, s_k, alpha, sigma):
-        if self.func(x + alpha * s_k) <= self.func(x) + sigma * alpha * np.dot(s_k, self.grad(x)):
-            return True
-        else:
-            return False
-        
-    def wolfe(self, x, s_k, alpha, rho):
-        if np.dot(s_k, self.grad(x + alpha * s_k)) >= rho * np.dot(s_k, self.grad(x)):
-            return True
-        else:
-            return False
-    
-    def inexact_line_search(self, x, s_k, sigma, rho, alpha_min):
-        while not self.armijo(x, s_k, alpha_min, sigma):
-            alpha_min = alpha_min/2
-        alpha_max = alpha_min
-        while self.armijo(x, s_k, alpha_max, sigma):
-            alpha_max = 2*alpha_max
-        while not self.wolfe(x, s_k, alpha_min, rho):
-            alpha_0 = (alpha_min + alpha_max)/2
-            if self.armijo(x, s_k, alpha_0, sigma):
-                alpha_min = alpha_0
-            else:
-                alpha_max = alpha_0
-
-        return alpha_min
- 
     def optimization_exact_ls(self, x0=None):
         self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
         x = self.x0
@@ -165,23 +137,17 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
                 hess = self.approx_hess(x)
-                if np.linalg.det(hess) != 0.0:
-                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                else:
-                    s = -hess.dot(self.grad(x))
+                s = self.s_k(x, hess)
                 alpha = self.exact_line_search(x, s)  # calculate alpha
-                x_new = x + alpha * s
+                x_new = self.x_new(x, s, alpha)
                 x = x_new
                 steps.append(x)
         else:  
             while True:
                 hess = self.approx_hess(x)
-                if np.linalg.det(hess) != 0.0:
-                    s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                else:
-                    s = -hess.dot(self.grad(x))
+                s = self.s_k(x, hess)
                 alpha = self.exact_line_search(x, s)  # calculate alpha
-                x_new = x + alpha * s
+                x_new = self.x_new(x, s, alpha)
                 if self.cauchy_crit(x, x_new):
                     break
                 x = x_new
@@ -196,30 +162,54 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
             if self.steep: # by default function is defined as steep
                 while not self.residual_crit(x):
                     hess = self.approx_hess(x)
-                    if np.linalg.det(hess) != 0.0:
-                        s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                    else:
-                        s = -hess.dot(self.grad(x))
+                    s = self.s_k(x, hess)
                     alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                    x_new = x + alpha * s
+                    x_new = self.x_new(x, s, alpha)
                     x = x_new
                     steps.append(x)
             else:  
                 while True:
                     hess = self.approx_hess(x)
-                    if np.linalg.det(hess) != 0.0:
-                        s = -np.linalg.inv(hess).dot(self.grad(x)) 
-                    else:
-                        s = -hess.dot(self.grad(x))
+                    s = self.s_k(x, hess)
                     alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                    x_new = x + alpha * s
+                    x_new = self.x_new(x, s, alpha)
                     if self.cauchy_crit(x, x_new):
                         break
                     x = x_new
                     steps.append(x)
             return x_new, steps
 
-class GoodBroyden(ClassicalNewtonMethod):
+class QuasiNewtonMethods(GeneralOptimizationMethod):
+    def s_k(self, x, hess):
+        return -(np.dot(hess, self.grad(x)))  # ohne invertieren weil wir das durch QuasiNewtonMethods vermeiden wollen
+    
+    def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
+        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
+        x = self.x0
+
+        steps = []
+        if self.steep: # by default function is defined as steep
+            while not self.residual_crit(x):
+                s = self.s_k(x, hess)     # 1) compute Newton direction (s)
+                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
+                x_new = self.x_new(x, s, alpha)   # 3) calculate new x
+                hess = self.update_hess(x, x_new, hess)  # 4) update hessian
+                x = x_new
+                steps.append(x)
+        else:  
+            while True:
+                s = self.s_k(x, hess)
+                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
+                x_new = self.x_new(x, s, alpha)
+                if self.cauchy_crit(x, x_new):
+                    break
+                hess = self.update_hess(x, x_new, hess) 
+                x = x_new
+                steps.append(x)
+        
+        return x_new, steps
+
+class GoodBroyden(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
@@ -229,34 +219,9 @@ class GoodBroyden(ClassicalNewtonMethod):
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
-        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
-        x = self.x0
-
-        steps = []
-        if self.steep: # by default function is defined as steep
-            while not self.residual_crit(x):
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))     # 1) compute Newton direction (s)
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
-                x_new = x + alpha * s   # 3) calculate new x
-                hess = self.update_hess(x, x_new, hess)  # 4) update hessian
-                x = x_new
-                steps.append(x)
-        else:  
-            while True:
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                x_new = x + alpha * s
-                if self.cauchy_crit(x, x_new):
-                    break
-                hess = self.update_hess(x, x_new, hess) 
-                x = x_new
-                steps.append(x)
-        
-        return x_new, steps
-    
-class BadBroyden(ClassicalNewtonMethod):
+        return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
+      
+class BadBroyden(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
@@ -266,38 +231,15 @@ class BadBroyden(ClassicalNewtonMethod):
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
-        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
-        x = self.x0
-
-        steps = []
-        if self.steep: # by default function is defined as steep
-            while not self.residual_crit(x):
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))     # 1) compute Newton direction (s)
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
-                x_new = x + alpha * s   # 3) calculate new x
-                hess = self.update_hess(x, x_new, hess)  # 4) update hessian
-                x = x_new
-                steps.append(x)
-        else:  
-            while True:
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                x_new = x + alpha * s
-                if self.cauchy_crit(x, x_new):
-                    break
-                hess = self.update_hess(x, x_new, hess) 
-                x = x_new
-                steps.append(x)
+        return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
         
-        return x_new, steps
-
-class SymmetricBroyden(ClassicalNewtonMethod):
+class SymmetricBroyden(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
         u = delta - np.dot(hess, gamma)
+        print(f'delta: {delta}, gamma: {gamma}')
+        print(np.dot(u.T, gamma))
         a = 1 / np.dot(u.T, gamma)
         
         # update hess
@@ -305,34 +247,9 @@ class SymmetricBroyden(ClassicalNewtonMethod):
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
-        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
-        x = self.x0
+        return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
 
-        steps = []
-        if self.steep: # by default function is defined as steep
-            while not self.residual_crit(x):
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))     # 1) compute Newton direction (s)
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
-                x_new = x + alpha * s   # 3) calculate new x
-                hess = self.update_hess(x, x_new, hess)  # 4) update hessian
-                x = x_new
-                steps.append(x)
-        else:  
-            while True:
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                x_new = x + alpha * s
-                if self.cauchy_crit(x, x_new):
-                    break
-                hess = self.update_hess(x, x_new, hess) 
-                x = x_new
-                steps.append(x)
-        
-        return x_new, steps
-
-class DFP(ClassicalNewtonMethod):
+class DFP(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
@@ -342,34 +259,9 @@ class DFP(ClassicalNewtonMethod):
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
-        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
-        x = self.x0
+        return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
 
-        steps = []
-        if self.steep: # by default function is defined as steep
-            while not self.residual_crit(x):
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))     # 1) compute Newton direction (s)
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
-                x_new = x + alpha * s   # 3) calculate new x
-                hess = self.update_hess(x, x_new, hess)  # 4) update hessian
-                x = x_new
-                steps.append(x)
-        else:  
-            while True:
-                hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                x_new = x + alpha * s
-                if self.cauchy_crit(x, x_new):
-                    break
-                hess = self.update_hess(x, x_new, hess) 
-                x = x_new
-                steps.append(x)
-        
-        return x_new, steps
-
-class BFGS(ClassicalNewtonMethod):
+class BFGS(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
@@ -379,29 +271,4 @@ class BFGS(ClassicalNewtonMethod):
         return hess_new
 
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
-        self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
-        x = self.x0
-
-        steps = []
-        if self.steep: # by default function is defined as steep
-            while not self.residual_crit(x):
-                #hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))     # 1) compute Newton direction (s)
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
-                x_new = x + alpha * s   # 3) calculate new x
-                hess = self.update_hess(x, x_new, hess)  # 4) update hessian
-                x = x_new
-                steps.append(x)
-        else:  
-            while True:
-                #hess = self.approx_hess(x)
-                s = -hess.dot(self.grad(x))
-                alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
-                x_new = x + alpha * s
-                if self.cauchy_crit(x, x_new):
-                    break
-                hess = self.update_hess(x, x_new, hess) 
-                x = x_new
-                steps.append(x)
-        
-        return x_new, steps
+        return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
