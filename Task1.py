@@ -385,7 +385,7 @@ class BFGS(ClassicalNewtonMethod):
         steps = []
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
-                hess = self.approx_hess(x)
+                #hess = self.approx_hess(x)
                 s = -hess.dot(self.grad(x))     # 1) compute Newton direction (s)
                 alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
                 x_new = x + alpha * s   # 3) calculate new x
@@ -394,7 +394,7 @@ class BFGS(ClassicalNewtonMethod):
                 steps.append(x)
         else:  
             while True:
-                hess = self.approx_hess(x)
+                #hess = self.approx_hess(x)
                 s = -hess.dot(self.grad(x))
                 alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)  # calculate alpha
                 x_new = x + alpha * s
