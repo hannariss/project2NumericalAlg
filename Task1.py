@@ -41,27 +41,27 @@ class GeneralOptimizationMethod:
     
     def inexact_line_search(self, x, s_k, sigma, rho, alpha_min):
         # define armijo condition
-        def armijo(self, x, s_k, alpha, sigma):
+        def armijo(x, s_k, alpha, sigma):
             if self.func(x + alpha * s_k) <= self.func(x) + sigma * alpha * np.dot(s_k, self.grad(x)):
                 return True
             else:
                 return False
         
         # define Powell-Wolfe condition
-        def wolfe(self, x, s_k, alpha, rho):
+        def wolfe(x, s_k, alpha, rho):
             if np.dot(s_k, self.grad(x + alpha * s_k)) >= rho * np.dot(s_k, self.grad(x)):
                 return True
             else:
                 return False
             
-        while not self.armijo(x, s_k, alpha_min, sigma):
+        while not armijo(x, s_k, alpha_min, sigma):
             alpha_min = alpha_min/2
         alpha_max = alpha_min
-        while self.armijo(x, s_k, alpha_max, sigma):
+        while armijo(x, s_k, alpha_max, sigma):
             alpha_max = 2*alpha_max
-        while not self.wolfe(x, s_k, alpha_min, rho):
+        while not wolfe(x, s_k, alpha_min, rho):
             alpha_0 = (alpha_min + alpha_max)/2
-            if self.armijo(x, s_k, alpha_0, sigma):
+            if armijo(x, s_k, alpha_0, sigma):
                 alpha_min = alpha_0
             else:
                 alpha_max = alpha_0
