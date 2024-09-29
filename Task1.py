@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.optimize import minimize_scalar
+from scipy.optimize import minimize_scalar, line_search
 
 class OptimizationProblem: # asked Task1 --not really used
     def __init__(self, objective_func, gradient=None):
@@ -7,7 +7,7 @@ class OptimizationProblem: # asked Task1 --not really used
         self.gradient = gradient
 
 class GeneralOptimizationMethod:
-    counter = 1
+    iterations = 0
     def __init__(self, func, grad, x0, tol=1e-5, k=1000, steep=True): #constructor
         """
         Initialize the optimization method.
@@ -31,7 +31,6 @@ class GeneralOptimizationMethod:
     def s_k(self, x, hess):
         return -(np.dot(np.linalg.inv(hess), self.grad(x)))  # s^(k) := - G^(x^(k))^-1 * g^(x^(k))
     
-
     ## Second step of Quasi-Newton Methods
     def exact_line_search(self, x, s_k):
         def phi(alpha):
@@ -40,6 +39,8 @@ class GeneralOptimizationMethod:
         return alpha_opt.x # x is solution array of the optimization result from minimize_scalar
     
     def inexact_line_search(self, x, s_k, sigma, rho, alpha_min):
+        epsilon = 0.0001
+
         # define armijo condition
         def armijo(x, s_k, alpha, sigma):
             if self.func(x + alpha * s_k) <= self.func(x) + sigma * alpha * np.dot(s_k, self.grad(x)):
@@ -50,6 +51,13 @@ class GeneralOptimizationMethod:
         # define Powell-Wolfe condition
         def wolfe(x, s_k, alpha, rho):
             if np.dot(s_k, self.grad(x + alpha * s_k)) >= rho * np.dot(s_k, self.grad(x)):
+                return True
+            else:
+                return False
+        
+        # define goldstein condition
+        def goldstein(x, s_k, alpha, sigma):
+            if self.func(x + alpha * s_k) >= self.func(x) + (1 - sigma) * alpha * np.dot(s_k, self.grad(x)):
                 return True
             else:
                 return False
@@ -65,12 +73,18 @@ class GeneralOptimizationMethod:
                 alpha_min = alpha_0
             else:
                 alpha_max = alpha_0
+            # to prevent that we get stuck in the while loop and never find an alpha 
+            # for which both armijo and wolfe conditions are fulfilled,
+            # we increase the distance between alpha_min and alpha_max and move the
+            # alpha_min, alpha_max interval to the right
+            if alpha_max - alpha_min < epsilon:
+                alpha_min = alpha_min * 2.0 # Warning: this alpha might not fulfill the armijo condition anymore
+                alpha_max = alpha_max * 3.0
         return alpha_min
     
-
     # Third step of Quasi-Newton Methods
     def x_new(self, x, s, alpha):
-        return x + alpha * s
+        return x + (alpha * s)
     
     # Fourth step of Quasi-Newton Methods
     def update_hess(self):
@@ -78,13 +92,13 @@ class GeneralOptimizationMethod:
     
     ## Stopping criteria for optimization
     def residual_crit(self, x):
-        self.counter += 1
+        self.iterations += 1
         criterion = False
         residual = np.linalg.norm(self.grad(x))
         if residual < self.tol:
             criterion = True
-        if self.counter > self.k:
-            print("hello")
+        if self.iterations > self.k:
+            print("Maximum iterations reached.")
             criterion = True
         return criterion
     
@@ -94,9 +108,6 @@ class GeneralOptimizationMethod:
         if cauchy < self.tol:
             criterion = True
         return criterion
-
-
-    
 
 class ClassicalNewtonMethod(GeneralOptimizationMethod):
     def approx_hess(self, x, h=1e-5):
@@ -113,7 +124,6 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 
                 ## Compute hessian approximation
                 # Compute single components of formula
-        
                 f_ij = self.func(x + h * u_i + h * u_j)
                 f_i = self.func(x + h * u_i)
                 f_j = self.func(x + h * u_j)
@@ -125,15 +135,13 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
 
         # Symmetrize the Hessian approximation matrix
         hess_sym = 1/2 * (hess + hess.T)  
-
         return hess_sym
-
 
     def optimization_exact_ls(self, x0=None):
         self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
         x = self.x0
-
         steps = []
+
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
                 hess = self.approx_hess(x)
@@ -157,8 +165,8 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
     def optimization_inexact_ls(self, sigma, rho, alpha_min, x0=None):
             self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
             x = self.x0
-
             steps = []
+
             if self.steep: # by default function is defined as steep
                 while not self.residual_crit(x):
                     hess = self.approx_hess(x)
@@ -181,17 +189,19 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
 
 class QuasiNewtonMethods(GeneralOptimizationMethod):
     def s_k(self, x, hess):
-        return -(np.dot(hess, self.grad(x)))  # ohne invertieren weil wir das durch QuasiNewtonMethods vermeiden wollen
+        return (np.dot(-hess, self.grad(x)))  # ohne invertieren weil wir das durch QuasiNewtonMethods vermeiden wollen
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
         self.x0 = x0 if x0 is not None else self.x0  # by default x0 is defined in constructor, can be redefined in this function optionally
         x = self.x0
-
         steps = []
+
         if self.steep: # by default function is defined as steep
             while not self.residual_crit(x):
                 s = self.s_k(x, hess)     # 1) compute Newton direction (s)
                 alpha = self.inexact_line_search(x, s, sigma, rho, alpha_min)   # 2) calculate stepsize (alpha) with linesearch
+                if self.func(x + alpha*s) >= self.func(x):
+                    print("Warning: s_k is not a descent direction.")
                 x_new = self.x_new(x, s, alpha)   # 3) calculate new x
                 hess = self.update_hess(x, x_new, hess)  # 4) update hessian
                 x = x_new
@@ -205,42 +215,50 @@ class QuasiNewtonMethods(GeneralOptimizationMethod):
                     break
                 hess = self.update_hess(x, x_new, hess) 
                 x = x_new
-                steps.append(x)
-        
+                steps.append(x)       
         return x_new, steps
+
 
 class GoodBroyden(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
 
-        #update hess
-        hess_new = hess + np.dot(((delta - np.dot(hess, gamma))/(np.linalg.multi_dot([delta.T, hess, gamma]))), np.dot(delta.T, hess))
+        # update hess
+        hess_new = hess + np.dot(((delta - np.dot(hess, gamma))/ \
+                                  (np.linalg.multi_dot([delta.T, hess, gamma]))), np.dot(delta.T, hess)) 
+        # hess_new = 0.5 * (hess_new + hess_new.T) # ensures that hessian is symmetric
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
         return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
-      
+
+
 class BadBroyden(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
 
-        #update hess
+        # update hess
         hess_new = hess + np.dot(((delta - np.dot(hess, gamma))/(np.dot(gamma.T, gamma))), gamma.T)
+        # hess_new = 0.5 * (hess_new + hess_new.T) # ensures that hessian is symmetric
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
         return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
-        
+
+
 class SymmetricBroyden(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
         u = delta - np.dot(hess, gamma)
-        print(f'delta: {delta}, gamma: {gamma}')
-        print(np.dot(u.T, gamma))
-        a = 1 / np.dot(u.T, gamma)
+        
+        a_denominator = np.dot(u.T, gamma)
+        if abs(a_denominator) < 1e-8:  # check if its close to zero
+            print('near zero')
+            a_denominator = np.sign(a_denominator) * 1e-8 # prevents near zero values, np.sign maintains the correct sign
+        a = 1 / a_denominator
         
         # update hess
         hess_new = hess + a * np.dot(u, u.T)
@@ -249,25 +267,39 @@ class SymmetricBroyden(QuasiNewtonMethods):
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
         return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
 
+
 class DFP(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
 
-        #update hess
-        hess_new = hess + ((np.dot(delta, delta.T))/(np.dot(delta.T, gamma))) - np.dot(np.dot(hess, gamma), np.dot(gamma.T, hess)) /((np.linalg.multi_dot([gamma.T, hess, gamma])))
+        # update hess
+        hess_new = hess + ((np.dot(delta, delta.T))/(np.dot(delta.T, gamma))) - \
+                        np.dot(np.dot(hess, gamma), np.dot(gamma.T, hess)) / \
+                        ((np.linalg.multi_dot([gamma.T, hess, gamma])))
+        # hess_new = 0.5 * (hess_new + hess_new.T) # ensures that hessian is symmetric
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
         return super().optimization_inexact_ls(sigma, rho, alpha_min, hess, x0)
 
+
 class BFGS(QuasiNewtonMethods):
     def update_hess(self, x, x_new, hess):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
-    
+
+        # add safeguard to prevent division by near-zero
+        delta_gamma = np.dot(delta.T, gamma) # calculates the denominator used in calculation
+        # if abs(delta_gamma) < 1e-8:  # check if its close to zero
+        #     print('near zero')
+        #     delta_gamma = np.sign(delta_gamma) * 1e-8 # prevents near zero values, np.sign maintains the correct sign
+
         # update hess
-        hess_new = hess + (1 + (np.linalg.multi_dot([gamma.T, hess, gamma])) / (np.dot(delta.T, gamma))) * (np.dot(delta, delta.T)) / (np.dot(delta.T, gamma)) - ((np.dot(delta, gamma.T) * hess) + np.dot(np.dot(hess, gamma), delta.T)) / np.dot(delta.T, gamma)
+        hess_new = hess + (1 + (np.linalg.multi_dot([gamma.T, hess, gamma])) / delta_gamma) * \
+                        (np.dot(delta, delta.T)) / delta_gamma - \
+                        ((np.dot(delta, gamma.T) * hess) + np.dot(np.dot(hess, gamma), delta.T)) / delta_gamma
+        hess_new = 0.5 * (hess_new + hess_new.T) # ensures that hessian is symmetric
         return hess_new
 
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
