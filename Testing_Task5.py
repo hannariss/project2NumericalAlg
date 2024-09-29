@@ -41,11 +41,11 @@ x0 = np.array([0, -0.5])
 # testing Good Broyden
 hess = np.array([[1, 0], [0, 1]]) # test with unit matrix 
 
-test_run_0 = Task1.ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500) # test with hess approx
-#hess = np.linalg.inv(test_run_0.approx_hess(x0))
+# test_run_0 = Task1.ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500) # test with hess approx
+# hess = np.linalg.inv(test_run_0.approx_hess(x0))
 
-test_run = Task1.BFGS(func, grad, x0, tol=1, k=100)
-minimizer, steps = test_run.optimization_inexact_ls(sigma=10**(-2), rho=0.9, alpha_min=3, hess=hess)
+test_run = Task1.BFGS(func, grad, x0, tol=1e-8, k=100, steep=False)
+minimizer, steps = test_run.optimization_inexact_ls(sigma=0.1, rho=0.01, alpha_min=3, hess=hess)
 
 print(f'minimizer:{minimizer}')
 print(steps)
