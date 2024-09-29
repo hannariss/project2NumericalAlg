@@ -503,10 +503,21 @@ class BFGS(QuasiNewtonMethods):
         #     delta_gamma = np.sign(delta_gamma) * 1e-8 # prevents near zero values, np.sign maintains the correct sign
 
         # Update the Hessian
-        hess_new = hess + (1 + (np.linalg.multi_dot([gamma.T, hess, gamma])) / delta_gamma) * \
-                        (np.dot(delta, delta.T)) / delta_gamma - \
-                        ((np.dot(delta, gamma.T) * hess) + np.dot(np.dot(hess, gamma), delta.T)) / delta_gamma
-        hess_new = 0.5 * (hess_new + hess_new.T) # Ensures that hessian is symmetric
+        term1 = (1 + np.dot(gamma.T, np.dot(hess, gamma)) / delta_gamma) * np.outer(delta, delta) / delta_gamma
+        term2 = np.outer(np.dot(hess, gamma), delta) / delta_gamma
+        term3 = np.outer(delta, np.dot(gamma.T, hess)) / delta_gamma
+
+        hess_new = hess + term1 - term2 - term3
+        hess_new = 0.5 * (hess_new + hess_new.T) 
+
+
+
+        # # Update the Hessian
+        # hess_new = hess + (1 + (np.linalg.multi_dot([gamma.T, hess, gamma])) / delta_gamma) * \
+        #                 (np.dot(delta, delta.T)) / delta_gamma - \
+        #                 ((np.dot(delta, gamma.T) * hess) + np.dot(np.dot(hess, gamma), delta.T)) / delta_gamma
+        # hess_new = 0.5 * (hess_new + hess_new.T) # Ensures that hessian is symmetric
+        
         return hess_new
 
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
