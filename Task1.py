@@ -76,7 +76,6 @@ class GeneralOptimizationMethod:
         Returns:
         - float. The step size (alpha) that satisfies both Armijo and Wolfe conditions.
         """
-        epsilon = 0.0001
 
         # Define Armijo condition
         def armijo(x, s_k, alpha, sigma):
@@ -116,14 +115,7 @@ class GeneralOptimizationMethod:
                 alpha_min = alpha_0
             else:
                 alpha_max = alpha_0
-            # to prevent that we get stuck in the while loop and never find an alpha 
-            # for which both armijo and wolfe conditions are fulfilled,
-            # we increase the distance between alpha_min and alpha_max and move the
-            # alpha_min, alpha_max interval to the right
-            if alpha_max - alpha_min < epsilon:
-                alpha_min = alpha_min * 2.0 # Warning: this alpha might not fulfill the armijo condition anymore
-                alpha_max = alpha_max * 3.0
-        
+
         return alpha_min
     
     # Third step of Newton Methods
@@ -375,10 +367,13 @@ class GoodBroyden(QuasiNewtonMethods):
         delta = x_new - x # result: vector
         gamma = self.grad(x_new) - self.grad(x) # result: vector
 
-        # Update the Hessian
-        hess_new = hess + np.dot(((delta - np.dot(hess, gamma))/ \
-                                  (np.linalg.multi_dot([delta.T, hess, gamma]))), np.dot(delta.T, hess)) 
-        # hess_new = 0.5 * (hess_new + hess_new.T) # ensures that hessian is symmetric
+        term1 = delta - np.dot(hess, gamma)
+        term2 = np.dot(np.dot(delta.T, hess), gamma)
+
+        # Update Hessian
+        hess_new = hess + np.outer(term1, np.dot(delta.T, hess)) / term2
+        hess_new = 0.5 * (hess_new + hess_new.T)
+
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
@@ -401,12 +396,18 @@ class BadBroyden(QuasiNewtonMethods):
         Returns:
         - np.ndarray. The updated Hessian matrix.
         """
-        delta = x_new - x # result: vector
-        gamma = self.grad(x_new) - self.grad(x) # result: vector
+        delta = x_new - x
+        gamma = self.grad(x_new) - self.grad(x)
 
-        # Update the Hessian
-        hess_new = hess + np.dot(((delta - np.dot(hess, gamma))/(np.dot(gamma.T, gamma))), gamma.T)
-        # hess_new = 0.5 * (hess_new + hess_new.T) # ensures that hessian is symmetric
+        term1 = np.dot(gamma.T, gamma)
+        if abs(term1) < 1e-8:  # Ensure no division by near-zero
+            term1 = np.sign(term1) * 1e-8
+        
+        term2 = (delta - np.dot(hess, gamma)) / term1
+        
+        # Update Hessian
+        hess_new = hess + np.outer(term2, gamma.T)
+        hess_new = 0.5 * (hess_new + hess_new.T)
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
@@ -434,13 +435,13 @@ class SymmetricBroyden(QuasiNewtonMethods):
         u = delta - np.dot(hess, gamma)
         
         a_denominator = np.dot(u.T, gamma)
-        if abs(a_denominator) < 1e-8:  # check if its close to zero
-            print('near zero')
-            a_denominator = np.sign(a_denominator) * 1e-8 # prevents near zero values, np.sign maintains the correct sign
+        if abs(a_denominator) < 1e-8:  # Ensure no division by near-zero
+            a_denominator = np.sign(a_denominator) * 1e-8
+        
         a = 1 / a_denominator
         
-        # Update the Hessian
-        hess_new = hess + a * np.dot(u, u.T)
+        # Update Hessian
+        hess_new = hess + a * np.outer(u, u)
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
@@ -466,11 +467,16 @@ class DFP(QuasiNewtonMethods):
         delta = x_new - x # Result: vector
         gamma = self.grad(x_new) - self.grad(x) # Result: vector
 
-        # Update the Hessian
-        hess_new = hess + ((np.dot(delta, delta.T))/(np.dot(delta.T, gamma))) - \
-                        np.dot(np.dot(hess, gamma), np.dot(gamma.T, hess)) / \
-                        ((np.linalg.multi_dot([gamma.T, hess, gamma])))
-        # hess_new = 0.5 * (hess_new + hess_new.T) # Ensures that hessian is symmetric
+        # Compute terms for the DFP update
+        delta_gamma = np.dot(delta.T, gamma)
+        gamma_hess_gamma = np.linalg.multi_dot([gamma.T, hess, gamma])
+
+        # Update Hessian
+        term1 = np.outer(delta, delta) / delta_gamma
+        term2 = np.linalg.multi_dot([hess, np.outer(gamma, gamma), hess]) / gamma_hess_gamma
+
+        hess_new = hess + term1 - term2
+        hess_new = 0.5 * (hess_new + hess_new.T)
         return hess_new
     
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
@@ -498,26 +504,14 @@ class BFGS(QuasiNewtonMethods):
 
         # Compute denominator
         delta_gamma = np.dot(delta.T, gamma) # calculates the denominator used in calculation
-        # if abs(delta_gamma) < 1e-8:  # check if its close to zero
-        #     print('near zero')
-        #     delta_gamma = np.sign(delta_gamma) * 1e-8 # prevents near zero values, np.sign maintains the correct sign
 
-        # Update the Hessian
         term1 = (1 + np.dot(gamma.T, np.dot(hess, gamma)) / delta_gamma) * np.outer(delta, delta) / delta_gamma
         term2 = np.outer(np.dot(hess, gamma), delta) / delta_gamma
         term3 = np.outer(delta, np.dot(gamma.T, hess)) / delta_gamma
 
+        # Update the Hessian
         hess_new = hess + term1 - term2 - term3
         hess_new = 0.5 * (hess_new + hess_new.T) 
-
-
-
-        # # Update the Hessian
-        # hess_new = hess + (1 + (np.linalg.multi_dot([gamma.T, hess, gamma])) / delta_gamma) * \
-        #                 (np.dot(delta, delta.T)) / delta_gamma - \
-        #                 ((np.dot(delta, gamma.T) * hess) + np.dot(np.dot(hess, gamma), delta.T)) / delta_gamma
-        # hess_new = 0.5 * (hess_new + hess_new.T) # Ensures that hessian is symmetric
-        
         return hess_new
 
     def optimization_inexact_ls(self, sigma, rho, alpha_min, hess, x0=None):
