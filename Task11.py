@@ -7,14 +7,14 @@ import Task1
 
 
 # define initial guess (x0)
-x0 = np.array([2, 3, 5, 3])
-# x0 = np.linspace(0, 1, 8)
-
+#x0 = np.array([2, 3, 5, 3])
+#x0 = np.linspace(0, 1, 8)
+x0 = np.linspace(0, 1, 11)
 
 # define initial hess
-hess = np.eye(4)
+hess = np.eye(len(x0))
 
-test_run = Task1.BFGS(ch.chebyquad, ch.gradchebyquad, x0, k=1000, tol=1e-5, steep=True)
+test_run = Task1.BFGS(ch.chebyquad, ch.gradchebyquad, x0)
 minimizer, steps = test_run.optimization_inexact_ls(sigma=0.1, rho=0.01, alpha_min=5, hess=hess)
 
 # scipy optimization
