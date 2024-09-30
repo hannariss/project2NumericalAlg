@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.optimize as so
+
 import chebyquad_problem as ch
-import Task1
+import OptimizationMethods as opt
 
 # define initial guess (x0)
 #x0 = np.linspace(0, 1, 8)
@@ -10,7 +11,7 @@ x0 = np.linspace(0, 1, 4)
 # define initial hess
 hess = np.eye(len(x0))
 
-test_run = Task1.BFGS(ch.chebyquad, ch.gradchebyquad, x0)
+test_run = opt.BFGS(ch.chebyquad, ch.gradchebyquad, x0)
 minimizer, steps = test_run.optimization_inexact_ls(sigma=0.1, rho=0.01, alpha_min=5, hess=hess)
 
 # scipy optimization
