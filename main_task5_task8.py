@@ -2,10 +2,11 @@
 # Task 5, 7 -> WORKS!
 # Additional testing of Quasi Newton Method on Rosenbrock function
 
-import Task1
 import numpy as np
 import sympy as sp
 import matplotlib.pyplot as plt
+
+import OptimizationMethods as opt
 
 def func(x):
     """
@@ -58,7 +59,7 @@ x0 = np.array([0, -0.5])
 # Testing of Classical Newton Method
 #------------------------------------
 
-test_run = Task1.ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500) # object gets created
+test_run = opt.ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500) # object gets created
 
 # Task 5: test Classical Newton Method with EXACT line search on the Rosenbrock function
 #minimizer, steps = test_run.optimization_exact_ls(x0)
@@ -79,23 +80,23 @@ alpha_min = 0.1
 hess_id = np.eye(2)
 
 # Initial hess: hess approx from Classical Newton method (approximination by finite differences)
-test_run_0 = Task1.ClassicalNewtonMethod(func, grad, x0) # test with hess approx
+test_run_0 = opt.ClassicalNewtonMethod(func, grad, x0) # test with hess approx
 hess = np.linalg.inv(test_run_0.approx_hess(x0))
 
 # Good Broyden -> divide by zero error
-#test_run = Task1.GoodBroyden(func, grad, x0, tol=1e-8, k=500, steep=True)
+#test_run = opt.GoodBroyden(func, grad, x0, tol=1e-8, k=500, steep=True)
 
 # Bad Broyden -> divide by zero error
-#test_run = Task1.BadBroyden(func, grad, x0, tol=1e-8, k=100, steep=True)
+#test_run = opt.BadBroyden(func, grad, x0, tol=1e-8, k=100, steep=True)
 
 # Symmetric Broyden -> stuck, no descent direction, divide by zero error
-#test_run = Task1.SymmetricBroyden(func, grad, x0, tol=1e-5, k=100, steep=True)
+#test_run = opt.SymmetricBroyden(func, grad, x0, tol=1e-5, k=100, steep=True)
 
 # DFP -> works
-test_run = Task1.DFP(func, grad, x0, tol=1e-8, k=100, steep=True)
+test_run = opt.DFP(func, grad, x0, tol=1e-8, k=100, steep=True)
 
 # BFGS -> works
-#test_run = Task1.BFGS(func, grad, x0, tol=1e-8, k=100, steep=True)
+#test_run = opt.BFGS(func, grad, x0, tol=1e-8, k=100, steep=True)
 
 minimizer, steps = test_run.optimization_inexact_ls(sigma=0.1, rho=0.01, alpha_min=0.1, hess=hess_id)
 
