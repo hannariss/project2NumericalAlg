@@ -1,7 +1,6 @@
 # In this script:
 # Task 5, 7 -> WORKS!
-# Additional testing of Quasi Newton Method on Rosenbrock function -> except for BFGS all of them run into the divide by zero error
-# BFGS gets stuck very soon
+# Additional testing of Quasi Newton Method on Rosenbrock function
 
 import Task1
 import numpy as np
@@ -138,11 +137,4 @@ ax.set_ylabel('x_2')
 ax.set_title('Rosenbrock Function: $f(x_1, x_2) = 100 * (x_2 - x_1^2)^2 + (1 - x_1)^2$')
 
 plt.show()
-
-
-
-
-
-
-
 
