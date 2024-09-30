@@ -336,6 +336,7 @@ class QuasiNewtonMethods(GeneralOptimizationMethod):
                     print("Warning: s_k is not a descent direction.")
                 x_new = self.x_new(x, s, alpha) # 3) Update x
                 hess = self.update_hess(x, x_new, hess) # 4) Update hessian
+                print(hess)
                 x = x_new
                 steps.append(x)
         else:  # For non-steep functions, use Cauchy criterion
