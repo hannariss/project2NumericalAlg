@@ -69,7 +69,7 @@ test_run = opt.ClassicalNewtonMethod(func, grad, x0, tol=1e-5, k=500) # object g
 sigma = 0.1
 rho = 0.01
 alpha_min = 0.1
-#minimizer, steps = test_run.optimization_inexact_ls(sigma, rho, alpha_min)
+minimizer, steps = test_run.optimization_inexact_ls(sigma, rho, alpha_min)
 
 
 #------------------------------
@@ -93,16 +93,16 @@ hess = np.linalg.inv(test_run_0.approx_hess(x0))
 #test_run = opt.SymmetricBroyden(func, grad, x0, tol=1e-5, k=100, steep=True)
 
 # DFP -> works
-test_run = opt.DFP(func, grad, x0, tol=1e-8, k=100, steep=True)
+#test_run = opt.DFP(func, grad, x0, tol=1e-8, k=100, steep=True)
 
 # BFGS -> works
 #test_run = opt.BFGS(func, grad, x0, tol=1e-8, k=100, steep=True)
 
-minimizer, steps = test_run.optimization_inexact_ls(sigma=0.1, rho=0.01, alpha_min=0.1, hess=hess_id)
+#minimizer, steps = test_run.optimization_inexact_ls(sigma=0.1, rho=0.01, alpha_min=0.1, hess=hess_id)
 
 # print output
 print(f'minimizer:{minimizer}')
-print(steps)
+#print(steps)
 
 
 #--------------------
