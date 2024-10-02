@@ -241,6 +241,7 @@ class ClassicalNewtonMethod(GeneralOptimizationMethod):
                 hess = self.approx_hess(x) # Approximate the Hessian
                 s = self.s_k(x, hess) # Compute the search direction
                 alpha = self.exact_line_search(x, s)  # Compute step size (alpha)
+                x_new = self.x_new(x, s, alpha)
                 x = x_new # Update x
                 steps.append(x)
         else: # For non-steep functions, use Cauchy criterion
